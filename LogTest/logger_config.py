@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from logging.handlers import TimedRotatingFileHandler
 import os
 from os.path import exists
@@ -27,24 +27,7 @@ class CustomTimedRotatingFileHandler(TimedRotatingFileHandler):
         dest.parent.mkdir(parents=True, exist_ok=True)  # Ensure folder exists
         source.rename(dest)
 
-    # def doRollover(self):
-    #     date_folder = datetime.now().strftime("%d-%m-%Y")
-    #     from uuid import uuid4
 
-    #     new_log_folder = self.base_dir / f"{date_folder}_{uuid4()}_Logs"
-    #     new_log_file = new_log_folder / f"debug_{date_folder}.log"
-    #     if self.stream:
-    #         self.stream.close()
-    #         self.stream = None
-    #     self._rotate_file(Path(self.baseFilename), new_log_file)
-
-    #     # Ensure old logs are rotated properly
-    #     if self.backupCount > 0:
-    #         for s in self.getFilesToDelete():
-    #             Path(s).unlink(missing_ok=True)
-
-    #     self.mode = "a"
-    #     self.stream = self._open()
     def doRollover(self):
         """
         do a rollover; in this case, a date/time stamp is appended to the filename
@@ -71,14 +54,12 @@ class CustomTimedRotatingFileHandler(TimedRotatingFileHandler):
                 else:
                     addend = -3600
                 timeTuple = time.localtime(t + addend)
-        date_folder = datetime.now().strftime("%d-%m-%Y")
-        from uuid import uuid4
+        date_folder = (datetime.now() - timedelta(1)).strftime("%d-%m-%Y")
 
-        new_log_folder = self.base_dir / f"{date_folder}_{uuid4()}_Logs"
+        new_log_folder = self.base_dir / date_folder
 
         new_log_folder.mkdir(parents=True, exist_ok=True)
-        new_log_file = new_log_folder / f"debug_{date_folder}.log"
-        # new_log_folder = self.base_dir / f"{date_folder}_{uuid4()}_Logs"
+        new_log_file = new_log_folder / "debug.log"
 
         dfn = self.rotation_filename(str(new_log_file))
         if os.path.exists(dfn):

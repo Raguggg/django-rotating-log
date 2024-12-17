@@ -127,7 +127,6 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # =================== LOGGING =================== #
 def get_log_file_path():
-    today = datetime.now().strftime("%Y-%m-%d")
 
     file_path = BASE_DIR / "DEBUG_LOGS" / "Today_Logs"
     file_path.mkdir(parents=True, exist_ok=True)
@@ -160,7 +159,7 @@ LOGGING = {
             "formatter": "file",
             "base_dir": BASE_DIR / "DEBUG_LOGS",
             "filename": get_log_file_path(),
-            "when": "M",
+            "when": "midnight",
             # "interval": 1,  # Every day
             "backupCount": 7,  # Keep logs for the last 7 days
             "encoding": "utf-8",
