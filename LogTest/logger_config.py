@@ -1,7 +1,6 @@
 from datetime import datetime, timedelta
 from logging.handlers import TimedRotatingFileHandler
 import os
-from os.path import exists
 from pathlib import Path
 import time
 
@@ -26,7 +25,6 @@ class CustomTimedRotatingFileHandler(TimedRotatingFileHandler):
     def _rotate_file(self, source, dest):
         dest.parent.mkdir(parents=True, exist_ok=True)  # Ensure folder exists
         source.rename(dest)
-
 
     def doRollover(self):
         """
@@ -66,8 +64,7 @@ class CustomTimedRotatingFileHandler(TimedRotatingFileHandler):
             os.remove(dfn)
         self.rotate(self.baseFilename, dfn)
         if self.backupCount > 0:
-            for s in self.getFilesToDelete():
-                os.remove(s)
+            self.delete_old_folders()
         if not self.delay:
             self.stream = self._open()
         newRolloverAt = self.computeRollover(currentTime)
@@ -86,20 +83,46 @@ class CustomTimedRotatingFileHandler(TimedRotatingFileHandler):
                 newRolloverAt += addend
         self.rolloverAt = newRolloverAt
 
+    def delete_old_folders(self):
+        """
+        Deletes folders in base_dir that are older than retention_days.
 
-class Test(TimedRotatingFileHandler):
-    def __init__(
-        self,
-        filename,
-        when="h",
-        interval=1,
-        backupCount=0,
-        encoding=None,
-        delay=False,
-        utc=False,
-        atTime=None,
-        errors=None,
-    ):
-        super().__init__(
-            filename, when, interval, backupCount, encoding, delay, utc, atTime, errors
-        )
+        Args:
+            base_dir (Path): The base directory containing date-based folders.
+            retention_days (int): Number of days to keep folders.
+        """
+        today = datetime.now()
+        cutoff_date = today - timedelta(days=self.backupCount)
+
+        # Iterate through all items in base_dir
+        for folder in self.base_dir.iterdir():
+            if folder.is_dir():  # Check if it's a folder
+                try:
+                    # Attempt to parse the folder name as a date in the format %d-%m-%Y
+                    folder_date = datetime.strptime(folder.name, "%d-%m-%Y")
+                    # Check if the folder date is older than the cutoff date
+                    if folder_date < cutoff_date:
+                        print(f"Deleting folder: {folder}")
+                        # Recursively delete files and subfolders within the folder
+                        self.delete_folder_recursively(folder)
+                        folder.rmdir()  # Remove the folder itself
+                except ValueError:
+                    # Folder name doesn't match the expected date format
+                    print(f"Skipping non-date folder: {folder}")
+
+    def delete_folder_recursively(self, folder: Path):
+        """
+        Recursively deletes all files and subfolders in a folder.
+
+        Args:
+            folder (Path): The folder to delete.
+        """
+        # Iterate through the folder's contents
+        for item in folder.iterdir():
+            if item.is_dir():
+                # Recursively delete subdirectories
+                self.delete_folder_recursively(item)
+            else:
+                # Delete files
+                item.unlink()
+        folder.rmdir()  # Remove the folder itself after its contents are deleted
